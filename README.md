@@ -1,6 +1,6 @@
 # Dispatch assistant prototype
 
-**Live: https://dispatch-prototype.vercel.app**
+**Live: https://dispatch-prototype-mocha.vercel.app**
 
 A clickable Wizard-of-Oz test for non-emergency patient transport dispatch: the same driver reassignment done in today's 14-click flow and in a proposed 1-click flow with a suggested driver, with timing and acceptance measured live in the session.
 All data is synthetic, generated from a fixed seed in `lib/data.ts`: 12 drivers, 40 trips, 3 double-bookings, 2 sick-call trips. No patient information exists anywhere in it.
