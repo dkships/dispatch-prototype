@@ -82,14 +82,13 @@ body {
   }
 }
 
-/* Tailwind's -translate-x-1/2 sets the `translate` property, so animate that. */
 @keyframes toast-in {
   from {
-    translate: -50% -8px;
+    translate: 0 8px;
     opacity: 0;
   }
   to {
-    translate: -50% 0;
+    translate: 0 0;
     opacity: 1;
   }
 }

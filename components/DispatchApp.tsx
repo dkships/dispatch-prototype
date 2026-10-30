@@ -8,15 +8,15 @@ import {
   formatRange,
   type Trip,
 } from "@/lib/data";
-import type { Mode, Reassignment } from "@/lib/session";
-import { suggestDrivers } from "@/lib/suggest";
+import { MODES, type Mode, type Reassignment } from "@/lib/session";
+import { eligibleDrivers, suggestDrivers } from "@/lib/suggest";
 import { formatSeconds } from "@/lib/useStopwatch";
 import { Board } from "./Board";
+import { OneClickPanel } from "./OneClickPanel";
+import { PANEL_WIDTH } from "./PanelShell";
 import { ProposedPanel, type ProposedOutcome } from "./ProposedPanel";
 import { ResultsPanel } from "./ResultsPanel";
 import { TodayFlow } from "./TodayFlow";
-
-const PANEL_WIDTH = 420;
 
 export function DispatchApp() {
   const [trips, setTrips] = useState<Trip[]>(INITIAL_TRIPS);
@@ -24,7 +24,8 @@ export function DispatchApp() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [landedId, setLandedId] = useState<string | null>(null);
   const [log, setLog] = useState<Reassignment[]>([]);
-  const [toast, setToast] = useState<string | null>(null);
+  // The toast carries the trip it reported on, so "Restore this trip" can undo it.
+  const [toast, setToast] = useState<{ text: string; tripId: string } | null>(null);
   // Results stay tucked away while a flow is open, then open to show the new numbers.
   const [resultsOpen, setResultsOpen] = useState(false);
   // Bumped on every open so a reopened trip gets a fresh flow, timer and counter.
@@ -40,6 +41,7 @@ export function DispatchApp() {
   // Clicking either half of a double-booking opens the later booking, the one to move.
   const active = trips.find((t) => t.id === activeId) ?? null;
   const activeConflict = conflicts.find((c) => c.move.id === activeId);
+  const eligible = useMemo(() => (active ? eligibleDrivers(active, trips) : []), [active, trips]);
   const candidates = useMemo(() => (active ? suggestDrivers(active, trips) : []), [active, trips]);
   const context = !active
     ? ""
@@ -54,7 +56,7 @@ export function DispatchApp() {
 
   useEffect(() => {
     if (!toast) return;
-    const id = window.setTimeout(() => setToast(null), 3600);
+    const id = window.setTimeout(() => setToast(null), 8000);
     return () => window.clearTimeout(id);
   }, [toast]);
 
@@ -87,11 +89,28 @@ export function DispatchApp() {
     setLandedId(entry.tripId);
     setActiveId(null);
     setResultsOpen(true);
-    setToast(
-      `${entry.tripId} reassigned to ${driverById(driverId).name} in ${entry.clicks} ${
+    setToast({
+      tripId: entry.tripId,
+      text: `${entry.tripId} reassigned to ${driverById(driverId).name} in ${entry.clicks} ${
         entry.clicks === 1 ? "click" : "clicks"
       }, ${formatSeconds(entry.seconds)}`,
-    );
+    });
+  }
+
+  // Put one trip back as it started (sick-call or double-booked) so the same
+  // problem can be run again in another arm. The log is kept.
+  function restoreTrip(tripId: string) {
+    const original = INITIAL_TRIPS.find((t) => t.id === tripId);
+    if (original) setTrips((all) => all.map((t) => (t.id === tripId ? original : t)));
+    setToast(null);
+  }
+
+  // Every flagged trip back to its starting state, log kept.
+  function runAgain() {
+    setTrips(INITIAL_TRIPS);
+    setActiveId(null);
+    setLandedId(null);
+    setToast(null);
   }
 
   function switchMode(next: Mode) {
@@ -108,7 +127,7 @@ export function DispatchApp() {
     setResultsOpen(false);
   }
 
-  const panelOpen = mode === "proposed" && active !== null;
+  const panelOpen = mode !== "today" && active !== null;
 
   return (
     <div className="min-h-dvh bg-white">
@@ -137,12 +156,7 @@ export function DispatchApp() {
             aria-label="Reassignment flow"
             className="flex rounded-lg border border-slate-200 bg-slate-100 p-0.5"
           >
-            {(
-              [
-                ["today", "Today (current flow)"],
-                ["proposed", "Proposed (1-click + suggestion)"],
-              ] as const
-            ).map(([value, label]) => (
+            {MODES.map(({ value, label }) => (
               <button
                 key={value}
                 type="button"
@@ -151,7 +165,7 @@ export function DispatchApp() {
                 onClick={() => switchMode(value)}
                 className={`rounded-md px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
                   mode === value
-                    ? value === "proposed"
+                    ? value === "ai"
                       ? "bg-teal-700 text-white shadow-sm"
                       : "bg-white text-slate-900 shadow-sm"
                     : "text-slate-600 hover:text-slate-900"
@@ -162,13 +176,24 @@ export function DispatchApp() {
             ))}
           </div>
 
-          <button
-            type="button"
-            onClick={reset}
-            className="rounded-md border border-slate-200 px-3 py-1.5 text-[13px] text-slate-600 hover:border-slate-300 hover:text-slate-900"
-          >
-            Reset demo
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={runAgain}
+              title="Put all five flagged trips back, keep the results"
+              className="rounded-md border border-slate-200 px-3 py-1.5 text-[13px] text-slate-600 hover:border-slate-300 hover:text-slate-900"
+            >
+              Run again
+            </button>
+            <button
+              type="button"
+              onClick={reset}
+              title="Put all trips back and clear the results"
+              className="rounded-md border border-slate-200 px-3 py-1.5 text-[13px] text-slate-600 hover:border-slate-300 hover:text-slate-900"
+            >
+              Reset demo
+            </button>
+          </div>
         </div>
       </header>
 
@@ -204,9 +229,7 @@ export function DispatchApp() {
         </div>
 
         <p className="mb-3 text-[13px] text-slate-500">
-          {mode === "today"
-            ? "Click a red or amber trip to reassign it the way dispatchers do today."
-            : "Click a red or amber trip to see a suggested driver."}
+          Pick a mode, then click a red or amber trip.
         </p>
 
         <Board
@@ -236,7 +259,7 @@ export function DispatchApp() {
           key={runKey}
           trip={active}
           context={context}
-          candidates={candidates}
+          eligible={eligible}
           onCancel={() => setActiveId(null)}
           onComplete={(driverId, clicks, seconds) =>
             reassign({ mode: "today", tripId: active.id, clicks, seconds }, driverId)
@@ -244,7 +267,20 @@ export function DispatchApp() {
         />
       )}
 
-      {active && mode === "proposed" && (
+      {active && mode === "oneclick" && (
+        <OneClickPanel
+          key={runKey}
+          trip={active}
+          context={context}
+          eligible={eligible}
+          onCancel={() => setActiveId(null)}
+          onComplete={(driverId, clicks, seconds) =>
+            reassign({ mode: "oneclick", tripId: active.id, clicks, seconds }, driverId)
+          }
+        />
+      )}
+
+      {active && mode === "ai" && (
         <ProposedPanel
           key={runKey}
           trip={active}
@@ -253,7 +289,7 @@ export function DispatchApp() {
           onCancel={() => setActiveId(null)}
           onComplete={(o: ProposedOutcome) =>
             reassign(
-              { mode: "proposed", tripId: active.id, clicks: o.clicks, seconds: o.seconds, accepted: o.accepted, reason: o.reason },
+              { mode: "ai", tripId: active.id, clicks: o.clicks, seconds: o.seconds, accepted: o.accepted, reason: o.reason },
               o.driverId,
             )
           }
@@ -270,9 +306,16 @@ export function DispatchApp() {
       {toast && (
         <div
           role="status"
-          className="anim-toast fixed top-[104px] left-1/2 z-50 -translate-x-1/2 rounded-lg bg-slate-900 px-4 py-2.5 text-[13px] font-medium text-white shadow-lg"
+          className="anim-toast fixed bottom-4 left-6 z-50 flex items-center gap-4 rounded-lg bg-slate-900 px-4 py-2.5 text-[13px] font-medium text-white shadow-lg"
         >
-          {toast}
+          {toast.text}
+          <button
+            type="button"
+            onClick={() => restoreTrip(toast.tripId)}
+            className="text-teal-300 underline underline-offset-2 hover:text-teal-200"
+          >
+            Restore this trip
+          </button>
         </div>
       )}
     </div>

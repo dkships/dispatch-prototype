@@ -8,7 +8,7 @@ import {
   formatTime,
   type Trip,
 } from "@/lib/data";
-import type { Candidate } from "@/lib/suggest";
+import type { Eligible } from "@/lib/suggest";
 import { formatSeconds, useStopwatch } from "@/lib/useStopwatch";
 
 // The current flow, reproduced click for click from the dispatchers' complaint:
@@ -20,18 +20,16 @@ const NEED_LABEL = { sedan: "Seated rider", wheelchair: "Wheelchair", stretcher:
 type Props = {
   trip: Trip;
   context: string;
-  candidates: Candidate[];
+  eligible: Eligible[];
   onComplete: (driverId: string, clicks: number, seconds: number) => void;
   onCancel: () => void;
 };
 
-export function TodayFlow({ trip, context, candidates, onComplete, onCancel }: Props) {
+export function TodayFlow({ trip, context, eligible, onComplete, onCancel }: Props) {
   const [clicks, setClicks] = useState(0);
-  const [picked, setPicked] = useState<Candidate | null>(null);
+  const [picked, setPicked] = useState<Eligible | null>(null);
   const { elapsed, read } = useStopwatch();
   const current = driverById(trip.driverId);
-  // The legacy list has no ranking: qualified drivers, alphabetical.
-  const listed = [...candidates].sort((a, b) => a.driver.name.localeCompare(b.driver.name));
 
   function click() {
     const next = clicks + 1;
@@ -89,7 +87,8 @@ export function TodayFlow({ trip, context, candidates, onComplete, onCancel }: P
             trip={trip}
             context={context}
             currentName={current.name}
-            listed={listed}
+            // The legacy list has no ranking: qualified drivers, alphabetical.
+            listed={eligible}
             picked={picked}
             onPick={(c) => {
               setPicked(c);
@@ -141,9 +140,9 @@ type StepProps = {
   trip: Trip;
   context: string;
   currentName: string;
-  listed: Candidate[];
-  picked: Candidate | null;
-  onPick: (c: Candidate) => void;
+  listed: Eligible[];
+  picked: Eligible | null;
+  onPick: (c: Eligible) => void;
   onClick: () => void;
 };
 

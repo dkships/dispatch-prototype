@@ -1,18 +1,20 @@
-import { BAR, summarize, type Reassignment } from "@/lib/session";
+import { BAR, MODES, summarize, type Reassignment } from "@/lib/session";
 import { formatSeconds } from "@/lib/useStopwatch";
 
 type Props = { log: Reassignment[]; open: boolean; onToggle: () => void; offsetRight: number };
 
 const fmt = (v: number | null, f: (n: number) => string) => (v === null ? "–" : f(v));
 
+// "saves 12.3s", or "adds 2.1s" when the faster-looking arm was actually slower.
+const delta = (v: number) => (v >= 0 ? `saves ${formatSeconds(v)}` : `adds ${formatSeconds(-v)}`);
+
 export function ResultsPanel({ log, open, onToggle, offsetRight }: Props) {
   const s = summarize(log);
-  const total = s.count.today + s.count.proposed;
 
   return (
     <section
       aria-label="Test results"
-      className="fixed bottom-4 z-20 w-[344px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_12px_40px_rgba(15,23,42,0.12)] transition-[right] duration-200"
+      className="fixed bottom-4 z-20 w-[380px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_12px_40px_rgba(15,23,42,0.12)] transition-[right] duration-200"
       style={{ right: offsetRight + 16 }}
     >
       <button
@@ -25,7 +27,7 @@ export function ResultsPanel({ log, open, onToggle, offsetRight }: Props) {
           Test results <span className="font-normal text-slate-500">· this session</span>
         </span>
         <span className="flex items-center gap-2 text-[12px] text-slate-500">
-          {total} {total === 1 ? "reassignment" : "reassignments"}
+          {log.length} {log.length === 1 ? "reassignment" : "reassignments"}
           <svg
             viewBox="0 0 12 12"
             className={`h-3 w-3 transition-transform ${open ? "" : "rotate-180"}`}
@@ -42,62 +44,73 @@ export function ResultsPanel({ log, open, onToggle, offsetRight }: Props) {
             <thead>
               <tr className="text-[11px] uppercase tracking-[0.05em] text-slate-500">
                 <th className="pb-1.5 text-left font-medium" />
-                <th className="pb-1.5 text-right font-medium">Today</th>
-                <th className="pb-1.5 text-right font-medium text-teal-700">Proposed</th>
+                {MODES.map((m) => (
+                  <th
+                    key={m.value}
+                    className={`pb-1.5 text-right font-medium ${m.value === "ai" ? "text-teal-700" : ""}`}
+                  >
+                    {m.label}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody className="text-slate-800">
-              <Row label="Reassignments" today={String(s.count.today)} proposed={String(s.count.proposed)} />
+              <Row label="Reassignments" values={MODES.map((m) => String(s.arms[m.value].count))} />
               <Row
                 label="Avg clicks"
-                today={fmt(s.clicks.today, (n) => n.toFixed(1))}
-                proposed={fmt(s.clicks.proposed, (n) => n.toFixed(1))}
+                values={MODES.map((m) => fmt(s.arms[m.value].clicks, (n) => n.toFixed(1)))}
               />
-              <Row
-                label="Avg time"
-                today={fmt(s.seconds.today, formatSeconds)}
-                proposed={fmt(s.seconds.proposed, formatSeconds)}
-              />
+              <Row label="Avg time" values={MODES.map((m) => fmt(s.arms[m.value].seconds, formatSeconds))} />
             </tbody>
           </table>
 
+          <dl className="mt-3 space-y-1 border-t border-slate-100 pt-3 text-[13px] tabular-nums">
+            <Line
+              label="UX fix alone"
+              value={s.uxSaved === null ? "needs Today + 1-click" : `${delta(s.uxSaved)} vs Today`}
+            />
+            <Line
+              label="AI on top of the fix"
+              value={s.aiSaved === null ? "needs 1-click + AI arm" : `${delta(s.aiSaved)} vs 1-click`}
+              strong
+            />
+          </dl>
+
           <dl className="mt-3 space-y-1 border-t border-slate-100 pt-3 text-[13px]">
-            <div className="flex justify-between">
-              <dt className="text-slate-500">Suggestion accepted</dt>
-              <dd className="tabular-nums text-slate-800">
-                {s.acceptance === null
+            <Line
+              label="Suggestion accepted"
+              value={
+                s.acceptance === null
                   ? "–"
-                  : `${s.accepted} of ${s.count.proposed} (${Math.round(s.acceptance * 100)}%)`}
-              </dd>
-            </div>
-            <div className="flex justify-between gap-3">
-              <dt className="text-slate-500">Override reasons</dt>
-              <dd className="text-right text-slate-800">
-                {s.reasons.length === 0 ? "None yet" : s.reasons.map(([r, n]) => `${r} (${n})`).join(", ")}
-              </dd>
-            </div>
+                  : `${s.accepted} of ${s.arms.ai.count} (${Math.round(s.acceptance * 100)}%)`
+              }
+            />
+            <Line
+              label="Override reasons"
+              value={s.reasons.length === 0 ? "None yet" : s.reasons.map(([r, n]) => `${r} (${n})`).join(", ")}
+            />
           </dl>
 
           <div className="mt-3 rounded-lg bg-slate-50 p-3">
             <p className="text-[12px] leading-snug text-slate-600">
-              Pre-agreed bar: build the real assistant if acceptance ≥ 60% and time saved ≥ 30s per
-              reassignment.
+              Pre-agreed bar: build the real assistant only if dispatchers accept ≥ 60% of suggestions AND the
+              suggestion saves ≥ 15s per reassignment over 1-click alone. Otherwise ship 1-click and stop.
             </p>
             <ul className="mt-2 space-y-1">
               <Criterion
                 met={s.meetsAcceptance}
                 label={
                   s.acceptance === null
-                    ? "Acceptance: no Proposed runs yet"
+                    ? "Acceptance: no 1-click + AI runs yet"
                     : `Acceptance ${Math.round(s.acceptance * 100)}% (bar ${BAR.acceptance * 100}%)`
                 }
               />
               <Criterion
-                met={s.meetsTime}
+                met={s.meetsAiTime}
                 label={
-                  s.saved === null
-                    ? "Time saved: needs a run in each mode"
-                    : `Time saved ${formatSeconds(s.saved)} (bar ${BAR.secondsSaved}s)`
+                  s.aiSaved === null
+                    ? "AI time saved: needs 1-click and 1-click + AI runs"
+                    : `AI ${delta(s.aiSaved)} vs 1-click (bar ${BAR.aiSecondsSaved}s)`
                 }
               />
             </ul>
@@ -108,13 +121,28 @@ export function ResultsPanel({ log, open, onToggle, offsetRight }: Props) {
   );
 }
 
-function Row({ label, today, proposed }: { label: string; today: string; proposed: string }) {
+function Row({ label, values }: { label: string; values: string[] }) {
   return (
     <tr>
       <td className="py-0.5 text-slate-500">{label}</td>
-      <td className="py-0.5 text-right">{today}</td>
-      <td className="py-0.5 text-right font-medium text-teal-800">{proposed}</td>
+      {values.map((v, i) => (
+        <td
+          key={i}
+          className={`py-0.5 text-right ${i === values.length - 1 ? "font-medium text-teal-800" : ""}`}
+        >
+          {v}
+        </td>
+      ))}
     </tr>
+  );
+}
+
+function Line({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <div className="flex justify-between gap-3">
+      <dt className="text-slate-500">{label}</dt>
+      <dd className={`text-right ${strong ? "font-medium text-slate-900" : "text-slate-800"}`}>{value}</dd>
+    </div>
   );
 }
 
