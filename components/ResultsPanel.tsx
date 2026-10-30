@@ -6,7 +6,8 @@ type Props = { log: Reassignment[]; open: boolean; onToggle: () => void; offsetR
 const fmt = (v: number | null, f: (n: number) => string) => (v === null ? "–" : f(v));
 
 // "saves 12.3s", or "adds 2.1s" when the faster-looking arm was actually slower.
-const delta = (v: number) => (v >= 0 ? `saves ${formatSeconds(v)}` : `adds ${formatSeconds(-v)}`);
+const delta = (v: number) =>
+  Math.abs(v) < 0.05 ? "no difference" : v > 0 ? `saves ${formatSeconds(v)}` : `adds ${formatSeconds(-v)}`;
 
 export function ResultsPanel({ log, open, onToggle, offsetRight }: Props) {
   const s = summarize(log);
