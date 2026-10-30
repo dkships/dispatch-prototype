@@ -1,0 +1,117 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  /* Slate neutrals with one teal accent. Red and amber are reserved for trips that
+     need a dispatcher's attention, so nothing else on the page uses them. */
+  --ink: #0f172a;
+  --ink-2: #475569;
+  --ink-3: #94a3b8;
+  --rule: #e2e8f0;
+  --wash: #f8fafc;
+  --accent: #0f766e;
+  --accent-wash: #f0fdfa;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: #ffffff;
+  color: var(--ink);
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
+  font-feature-settings: "kern";
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--accent);
+  color: #fff;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.off-shift {
+  background: repeating-linear-gradient(
+    -45deg,
+    #f1f5f9 0 6px,
+    #f8fafc 6px 12px
+  );
+}
+
+@keyframes panel-in {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes modal-in {
+  from {
+    transform: translateY(8px) scale(0.98);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes landed {
+  0% {
+    box-shadow: 0 0 0 0 rgba(15, 118, 110, 0.55);
+  }
+  100% {
+    box-shadow: 0 0 0 10px rgba(15, 118, 110, 0);
+  }
+}
+
+/* Tailwind's -translate-x-1/2 sets the `translate` property, so animate that. */
+@keyframes toast-in {
+  from {
+    translate: -50% -8px;
+    opacity: 0;
+  }
+  to {
+    translate: -50% 0;
+    opacity: 1;
+  }
+}
+
+.anim-panel {
+  animation: panel-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.anim-modal {
+  animation: modal-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.anim-landed {
+  animation: landed 900ms ease-out 2;
+}
+.anim-toast {
+  animation: toast-in 200ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-panel,
+  .anim-modal,
+  .anim-landed,
+  .anim-toast {
+    animation: none;
+  }
+}
