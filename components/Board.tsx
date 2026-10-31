@@ -38,38 +38,41 @@ function lanesFor(trips: Trip[]) {
 
 export function Board({ trips, conflictIds, activeTripId, landedTripId, onSelect }: Props) {
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-      <div className="grid grid-cols-[236px_1fr] border-b border-slate-200 bg-slate-50/80">
-        <div className="px-4 py-2 text-[11px] font-medium uppercase tracking-[0.06em] text-slate-500">
-          Driver
+    // The timeline needs room to read; on narrow screens it scrolls inside its frame.
+    <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+      <div className="min-w-[960px]">
+        <div className="grid grid-cols-[236px_1fr] border-b border-slate-200 bg-slate-50/80">
+          <div className="px-4 py-2 text-[12px] font-medium text-slate-500">
+            Driver
+          </div>
+          <div className="relative h-8">
+            {HOURS.map((m, i) => (
+              <span
+                key={m}
+                className="absolute top-1/2 whitespace-nowrap text-[11px] tabular-nums text-slate-500"
+                style={{
+                  left: pct(m),
+                  transform: `translate(${i === 0 ? "4px" : i === HOURS.length - 1 ? "calc(-100% - 4px)" : "-50%"}, -50%)`,
+                }}
+              >
+                {formatTime(m).replace(":00", "")}
+              </span>
+            ))}
+          </div>
         </div>
-        <div className="relative h-8">
-          {HOURS.map((m, i) => (
-            <span
-              key={m}
-              className="absolute top-1/2 whitespace-nowrap text-[11px] tabular-nums text-slate-500"
-              style={{
-                left: pct(m),
-                transform: `translate(${i === 0 ? "4px" : i === HOURS.length - 1 ? "calc(-100% - 4px)" : "-50%"}, -50%)`,
-              }}
-            >
-              {formatTime(m).replace(":00", "")}
-            </span>
-          ))}
-        </div>
-      </div>
 
-      {DRIVERS.map((driver) => (
-        <Row
-          key={driver.id}
-          driver={driver}
-          trips={trips.filter((t) => t.driverId === driver.id)}
-          conflictIds={conflictIds}
-          activeTripId={activeTripId}
-          landedTripId={landedTripId}
-          onSelect={onSelect}
-        />
-      ))}
+        {DRIVERS.map((driver) => (
+          <Row
+            key={driver.id}
+            driver={driver}
+            trips={trips.filter((t) => t.driverId === driver.id)}
+            conflictIds={conflictIds}
+            activeTripId={activeTripId}
+            landedTripId={landedTripId}
+            onSelect={onSelect}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -100,7 +103,7 @@ function Row({
             {driver.name}
           </span>
           {driver.outSick && (
-            <span className="rounded-full bg-amber-100 px-1.5 py-px text-[10px] font-semibold uppercase tracking-[0.04em] text-amber-800">
+            <span className="rounded-full bg-amber-100 px-1.5 py-px text-[11px] font-semibold text-amber-800">
               Out sick
             </span>
           )}

@@ -37,7 +37,7 @@ export function ProposedPanel({ trip, context, candidates, onComplete, onCancel 
           <>
             <section className="mt-4 rounded-xl border-2 border-teal-600 bg-teal-50/40 p-4">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-slate-500">
+                <span className="text-[12px] font-medium text-slate-500">
                   Suggested driver
                 </span>
                 <span className="rounded-full bg-teal-700 px-2 py-0.5 text-[11px] font-semibold text-white">
@@ -86,7 +86,7 @@ export function ProposedPanel({ trip, context, candidates, onComplete, onCancel 
 
             {alternates.length > 0 && (
               <section className="mt-5">
-                <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-slate-500">
+                <div className="text-[12px] font-medium text-slate-500">
                   {overriding ? "Pick an alternate" : "Alternates"}
                 </div>
                 <div className="mt-2 space-y-2">

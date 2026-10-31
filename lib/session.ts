@@ -25,13 +25,20 @@ export type Reassignment = {
   tripId: string;
   clicks: number;
   seconds: number;
+  // Drive time from the picked driver to the pickup. Speed is only half the
+  // question: a suggestion can be slower and still pick a closer driver.
+  minutesAway: number;
   // AI arm only: whether the suggested driver was accepted.
   accepted?: boolean;
   reason?: OverrideReason;
 };
 
 // The success criteria agreed before the test, so the result can't be argued after.
-export const BAR = { acceptance: 0.6, aiSecondsSaved: 15 };
+// No verdict until both 1-click arms have `minRuns` reassignments: one accepted
+// suggestion is 100% acceptance, which proves nothing.
+export const BAR = { acceptance: 0.6, aiSecondsSaved: 15, minRuns: 10 };
+
+export type Verdict = "too-few-runs" | "build" | "ship-one-click";
 
 function average(values: number[]) {
   return values.length ? values.reduce((a, b) => a + b, 0) / values.length : null;
@@ -49,10 +56,14 @@ export function summarize(log: Reassignment[]) {
           count: runs.length,
           clicks: average(runs.map((r) => r.clicks)),
           seconds: average(runs.map((r) => r.seconds)),
+          minutesAway: average(runs.map((r) => r.minutesAway)),
         },
       ];
     }),
-  ) as Record<Mode, { count: number; clicks: number | null; seconds: number | null }>;
+  ) as Record<
+    Mode,
+    { count: number; clicks: number | null; seconds: number | null; minutesAway: number | null }
+  >;
 
   const aiRuns = log.filter((r) => r.mode === "ai");
   const accepted = aiRuns.filter((r) => r.accepted).length;
@@ -63,6 +74,15 @@ export function summarize(log: Reassignment[]) {
   const uxSaved = diff(arms.today.seconds, arms.oneclick.seconds);
   const aiSaved = diff(arms.oneclick.seconds, arms.ai.seconds);
 
+  const enoughRuns = arms.oneclick.count >= BAR.minRuns && arms.ai.count >= BAR.minRuns;
+  const meetsAcceptance = enoughRuns && acceptance !== null && acceptance >= BAR.acceptance;
+  const meetsAiTime = enoughRuns && aiSaved !== null && aiSaved >= BAR.aiSecondsSaved;
+  const verdict: Verdict = !enoughRuns
+    ? "too-few-runs"
+    : meetsAcceptance && meetsAiTime
+      ? "build"
+      : "ship-one-click";
+
   return {
     arms,
     accepted,
@@ -70,7 +90,9 @@ export function summarize(log: Reassignment[]) {
     uxSaved,
     aiSaved,
     reasons: [...reasons.entries()],
-    meetsAcceptance: acceptance !== null && acceptance >= BAR.acceptance,
-    meetsAiTime: aiSaved !== null && aiSaved >= BAR.aiSecondsSaved,
+    enoughRuns,
+    meetsAcceptance,
+    meetsAiTime,
+    verdict,
   };
 }

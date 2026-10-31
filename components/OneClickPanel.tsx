@@ -22,7 +22,7 @@ export function OneClickPanel({ trip, context, eligible, onComplete, onCancel }:
         <NoDriverFree />
       ) : (
         <section className="mt-4">
-          <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-slate-500">
+          <div className="text-[12px] font-medium text-slate-500">
             Eligible drivers ({eligible.length}) · A–Z
           </div>
           <p className="mt-1 text-[12.5px] text-slate-500">Right vehicle, free for this trip. Click one to assign.</p>

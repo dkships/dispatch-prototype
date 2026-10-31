@@ -18,6 +18,13 @@ import { ProposedPanel, type ProposedOutcome } from "./ProposedPanel";
 import { ResultsPanel } from "./ResultsPanel";
 import { TodayFlow } from "./TodayFlow";
 
+// What each arm is, in the dispatcher's terms. Shown under the alerts.
+const MODE_HINT: Record<Mode, string> = {
+  today: "Today: the current scheduler, 14 clicks per reassignment.",
+  oneclick: "1-click: every eligible driver in one panel, A–Z. One click assigns.",
+  ai: "1-click + AI: the same panel, led by a suggested driver and why.",
+};
+
 export function DispatchApp() {
   const [trips, setTrips] = useState<Trip[]>(INITIAL_TRIPS);
   const [mode, setMode] = useState<Mode>("today");
@@ -81,7 +88,10 @@ export function DispatchApp() {
     setRunKey((k) => k + 1);
   }
 
-  function reassign(entry: Reassignment, driverId: string) {
+  // Every arm picks from the same eligible list, so drive time is read from it here.
+  function reassign(run: Omit<Reassignment, "minutesAway">, driverId: string) {
+    const minutesAway = eligible.find((e) => e.driver.id === driverId)?.minutesAway ?? 0;
+    const entry: Reassignment = { ...run, minutesAway };
     setTrips((all) =>
       all.map((t) => (t.id === entry.tripId ? { ...t, driverId, needsReassignment: false } : t)),
     );
@@ -132,11 +142,11 @@ export function DispatchApp() {
   return (
     <div className="min-h-dvh bg-white">
       <div className="border-b border-slate-200 bg-slate-50 py-1.5 text-center text-[12px] text-slate-500">
-        Prototype · synthetic data · no patient information
+        Prototype with synthetic data. No patient information.
       </div>
 
       <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-[1360px] items-center justify-between gap-6 px-6 py-3">
+        <div className="mx-auto flex max-w-[1360px] flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
             <span className="flex h-7 w-7 items-center justify-center rounded-md bg-teal-700" aria-hidden>
               <svg viewBox="0 0 16 16" className="h-4 w-4 text-white">
@@ -180,7 +190,7 @@ export function DispatchApp() {
             <button
               type="button"
               onClick={runAgain}
-              title="Put all five flagged trips back, keep the results"
+              title="Put every flagged trip back and keep the results"
               className="rounded-md border border-slate-200 px-3 py-1.5 text-[13px] text-slate-600 hover:border-slate-300 hover:text-slate-900"
             >
               Run again
@@ -197,8 +207,8 @@ export function DispatchApp() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1360px] px-6 pb-24 pt-4">
-        <div className="mb-3 grid grid-cols-2 gap-3">
+      <main className="mx-auto max-w-[1360px] px-4 pb-24 pt-4 sm:px-6">
+        <div className="mb-3 grid gap-3 md:grid-cols-2">
           <Alert
             tone="red"
             title={
@@ -228,8 +238,9 @@ export function DispatchApp() {
           />
         </div>
 
-        <p className="mb-3 text-[13px] text-slate-500">
-          Pick a mode, then click a red or amber trip.
+        <p className="mb-3 text-[13px] text-slate-600">
+          {MODE_HINT[mode]}{" "}
+          <span className="text-slate-500">Click a red or amber trip to reassign it.</span>
         </p>
 
         <Board

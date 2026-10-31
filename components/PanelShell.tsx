@@ -19,12 +19,12 @@ export function PanelShell({ trip, context, label, clicks, elapsed, onCancel, ch
   return (
     <aside
       aria-label={`Reassign ${trip.id}, ${label}`}
-      className="anim-panel fixed bottom-0 right-0 top-0 z-30 flex flex-col border-l border-slate-200 bg-white shadow-[-12px_0_40px_rgba(15,23,42,0.08)]"
+      className="anim-panel fixed bottom-0 right-0 top-0 z-30 flex max-w-full flex-col border-l border-slate-200 bg-white shadow-[-12px_0_40px_rgba(15,23,42,0.08)]"
       style={{ width: PANEL_WIDTH }}
     >
       <div className="flex items-start justify-between border-b border-slate-200 px-5 pb-4 pt-5">
         <div>
-          <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-teal-700">
+          <div className="text-[12px] font-medium text-teal-700">
             Reassign trip · {label}
           </div>
           <div className="mt-0.5 text-[17px] font-semibold text-slate-900">

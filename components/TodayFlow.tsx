@@ -53,7 +53,7 @@ export function TodayFlow({ trip, context, eligible, onComplete, onCancel }: Pro
       >
         <div className="flex items-center justify-between border-b border-slate-200 bg-slate-100 px-5 py-3">
           <div>
-            <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-slate-500">
+            <div className="text-[12px] font-medium text-slate-500">
               Current scheduler · Reassign trip
             </div>
             <div className="text-[14px] font-semibold text-slate-900">
@@ -79,7 +79,7 @@ export function TodayFlow({ trip, context, eligible, onComplete, onCancel }: Pro
         </div>
 
         <div className="min-h-[248px] px-5 py-5">
-          <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.06em] text-slate-400">
+          <div className="mb-3 text-[12px] font-medium text-slate-400">
             Step {step} of {TOTAL}
           </div>
           <Step
