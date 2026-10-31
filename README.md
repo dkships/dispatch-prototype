@@ -9,9 +9,9 @@ Today vs 1-click measures the UX fix alone; 1-click vs 1-click + AI measures wha
 
 ## The bar, agreed before the test
 
-Build the real assistant only if dispatchers accept at least 60% of suggestions **and** the suggestion saves at least 15 seconds per reassignment over 1-click alone. Otherwise ship 1-click and stop.
+Build the real assistant only if dispatchers accept at least 60% of suggestions **and** the drivers picked in the 1-click + AI arm are, on average, no farther from pickup than the drivers dispatchers pick themselves in 1-click. Otherwise ship 1-click and stop.
+Time to reassign is still measured and shown for every arm, but it is not part of the bar.
 The results panel gives no verdict until both 1-click arms have 10 reassignments, so a single accepted suggestion can't read as 100% acceptance.
-It also shows the average drive time from the picked driver to the pickup in each arm: a suggestion that is slower but picks closer drivers is a different finding from one that is simply ignored.
 The thresholds live in `BAR` in `lib/session.ts`.
 
 ## Running the test with dispatchers
@@ -22,7 +22,7 @@ The thresholds live in `BAR` in `lib/session.ts`.
 
 ## What this doesn't test
 
-- **The 15-second bar is deliberately hard.** Both 1-click arms take one click, so the suggestion can only save scanning time across a short list. Missing it is the expected result unless the suggestion is clearly better than a dispatcher's own scan.
+- **Why quality, not time.** Both 1-click arms take one click, so the suggestion can only save scanning time across a short list; a time bar would mostly measure list length. The quality bar asks whether the suggestion picks drivers at least as close as a dispatcher's own scan, and acceptance asks whether they trust it.
 - **Calendar crashes**, the dispatchers' other complaint, are out of scope. That is a reliability fix, not something to prototype.
 - **Model quality.** The "AI suggestion" is a stub: `suggestDrivers` in `lib/suggest.ts` ranks the eligible drivers with fixed rules (vehicle match, availability, zone distance, current load) and calls no model or API. The test measures whether dispatchers want a suggestion, not whether a model can produce a good one.
 

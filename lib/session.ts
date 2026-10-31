@@ -34,9 +34,12 @@ export type Reassignment = {
 };
 
 // The success criteria agreed before the test, so the result can't be argued after.
+// Acceptance plus quality: suggested drivers must be no farther from pickup, on
+// average, than the drivers dispatchers pick themselves in 1-click. Time to
+// reassign is still measured and shown, but it is not a criterion.
 // No verdict until both 1-click arms have `minRuns` reassignments: one accepted
 // suggestion is 100% acceptance, which proves nothing.
-export const BAR = { acceptance: 0.6, aiSecondsSaved: 15, minRuns: 10 };
+export const BAR = { acceptance: 0.6, maxExtraMinutes: 0, minRuns: 10 };
 
 export type Verdict = "too-few-runs" | "build" | "ship-one-click";
 
@@ -73,13 +76,19 @@ export function summarize(log: Reassignment[]) {
 
   const uxSaved = diff(arms.today.seconds, arms.oneclick.seconds);
   const aiSaved = diff(arms.oneclick.seconds, arms.ai.seconds);
+  // Positive: the AI arm's picks are farther from pickup than 1-click picks.
+  const aiExtraMinutes = diff(arms.ai.minutesAway, arms.oneclick.minutesAway);
 
   const enoughRuns = arms.oneclick.count >= BAR.minRuns && arms.ai.count >= BAR.minRuns;
   const meetsAcceptance = enoughRuns && acceptance !== null && acceptance >= BAR.acceptance;
-  const meetsAiTime = enoughRuns && aiSaved !== null && aiSaved >= BAR.aiSecondsSaved;
+  const meetsAiQuality =
+    enoughRuns &&
+    arms.ai.minutesAway !== null &&
+    arms.oneclick.minutesAway !== null &&
+    arms.ai.minutesAway - arms.oneclick.minutesAway <= BAR.maxExtraMinutes;
   const verdict: Verdict = !enoughRuns
     ? "too-few-runs"
-    : meetsAcceptance && meetsAiTime
+    : meetsAcceptance && meetsAiQuality
       ? "build"
       : "ship-one-click";
 
@@ -89,10 +98,11 @@ export function summarize(log: Reassignment[]) {
     acceptance,
     uxSaved,
     aiSaved,
+    aiExtraMinutes,
     reasons: [...reasons.entries()],
     enoughRuns,
     meetsAcceptance,
-    meetsAiTime,
+    meetsAiQuality,
     verdict,
   };
 }

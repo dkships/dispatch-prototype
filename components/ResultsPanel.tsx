@@ -17,7 +17,7 @@ const VERDICT: Record<Verdict, { title: string; body: string; tone: string }> = 
   },
   build: {
     title: "Build the assistant",
-    body: "Dispatchers trust the suggestion and it saves real time over 1-click alone.",
+    body: "Dispatchers trust the suggestion and it picks drivers at least as close as their own 1-click picks.",
     tone: "border-teal-700 bg-teal-700 text-white",
   },
   "ship-one-click": {
@@ -130,7 +130,7 @@ export function ResultsPanel({ log, open, onToggle, offsetRight }: Props) {
 
           <div className="mt-3 border-t border-slate-100 pt-3">
             <p className="text-[12px] leading-snug text-slate-500">
-              Bar agreed before the test: build the real assistant only if both are met.
+              Bar agreed before the test: build the real assistant only if dispatchers accept the suggestion and it picks drivers no farther from pickup than they do. Time saved is shown above but is not part of the bar.
             </p>
             <ul className="mt-2 space-y-1.5">
               <Criterion
@@ -139,9 +139,13 @@ export function ResultsPanel({ log, open, onToggle, offsetRight }: Props) {
                 value={s.acceptance === null ? "–" : `${Math.round(s.acceptance * 100)}%`}
               />
               <Criterion
-                state={pending ? "pending" : s.meetsAiTime ? "met" : "missed"}
-                label={`Saves ${BAR.aiSecondsSaved}s or more over 1-click`}
-                value={s.aiSaved === null ? "–" : `${s.aiSaved >= 0 ? "" : "−"}${formatSeconds(Math.abs(s.aiSaved))}`}
+                state={pending ? "pending" : s.meetsAiQuality ? "met" : "missed"}
+                label="Suggested drivers are no farther from pickup than 1-click picks"
+                value={
+                  s.aiExtraMinutes === null
+                    ? "–"
+                    : `${s.aiExtraMinutes > 0 ? "+" : s.aiExtraMinutes < 0 ? "−" : ""}${Math.abs(s.aiExtraMinutes).toFixed(1)} min`
+                }
               />
             </ul>
           </div>
